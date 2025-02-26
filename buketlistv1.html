@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bucketlist - My Travel Map</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2ecc71;
+            --dark-color: #2c3e50;
+            --light-color: #ecf0f1;
+            --danger-color: #e74c3c;
+            --warning-color: #f39c12;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        header {
+            background-color: var(--dark-color);
+            color: white;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .logo span {
+            color: var(--primary-color);
+        }
+        
+        .logo-icon {
+            font-size: 1.8rem;
+        }
+        
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 1.5rem;
+        }
+        
+        nav a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+            padding: 0.5rem;
+            border-radius: 4px;
+        }
+        
+        nav a:hover {
+            color: var(--primary-color);
+        }
+        
+        .active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .active:hover {
+            color: white;
+        }
+        
+        main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .sidebar {
+            width: 350px;
+            background-color: var(--light-color);
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+            z-index: 10;
+        }
+        
+        #map-container {
+            flex: 1;
+            position: relative;
+        }
+        
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+        
+        .trip-form {
+            padding: 1.5rem;
+            background-color: white;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .form-title {
+            color: var(--dark-color);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--dark-color);
+            font-weight: 500;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+        
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+        
+        .btn-danger {
+            background-color: var(--danger-color);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        
+        .trips-list {
+            padding: 1.5rem;
+        }
+        
+        .trips-list-title {
+            color: var(--dark-color);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .trip-card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 1rem;
+            overflow: hidden;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .trip-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        .trip-card-header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 0.75rem 1rem;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .trip-card-body {
+            padding: 1rem;
+        }
+        
+        .trip-detail {
+            margin-bottom: 0.5rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .trip-detail-label {
+            font-weight: 600;
+            color: var(--dark-color);
+            min-width: 100px;
+        }
+        
+        .trip-card-actions {
+            padding: 0.75rem 1rem;
+            background-color: #f8f9fa;
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+        }
+        
+        .trip-action-btn {
+            background: none;
+            border: none;
+            color: var(--dark-color);
+            cursor: pointer;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        
+        .trip-action-btn:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+        
+        .trip-action-btn.delete:hover {
+            color: var(--danger-color);
+        }
+        
+        .trip-action-btn.edit:hover {
+            color: var(--primary-color);
+        }
+        
+        .companion-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        
+        .companion-chip {
+            background-color: var(--light-color);
+            padding: 0.25rem 0.75rem;
+            border-radius: 100px;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        
+        .companion-chip-remove {
+            border: none;
+            background: none;
+            cursor: pointer;
+            color: #777;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 0.25rem;
+        }
+        
+        .companion-chip-remove:hover {
+            color: var(--danger-color);
+        }
+        
+        .companion-input-container {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .companion-input-container .form-control {
+            flex: 1;
+        }
+        
+        .companion-add-btn {
+            padding: 0.75rem;
+            border: none;
+            background-color: var(--dark-color);
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .companion-add-btn:hover {
+            background-color: #1a252f;
+        }
+        
+        .map-controls {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            z-index: 400;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .map-control-btn {
+            background-color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .map-control-btn:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .toggle-sidebar {
+            display: none;
+        }
+        
+        .custom-marker {
+            text-align: center;
+        }
+        
+        .marker-pin {
+            width: 30px;
+            height: 30px;
+            border-radius: 50% 50% 50% 0;
+            background-color: var(--primary-color);
+            transform: rotate(-45deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        
+        .marker-pin::after {
+            content: '';
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: white;
+        }
+        
+        .marker-text {
+            position: relative;
+            top: -5px;
+            font-weight: bold;
+            color: var(--dark-color);
+        }
+        
+        .empty-state {
+            padding: 2rem;
+            text-align: center;
+            color: #777;
+        }
+        
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #ddd;
+        }
+        
+        .empty-state-text {
+            margin-bottom: 1rem;
+        }
+        
+        @media screen and (max-width: 768px) {
+            .sidebar {
+                position: absolute;
+                height: 100%;
+                transform: translateX(-100%);
+                box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+            }
+            
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            
+            .toggle-sidebar {
+                display: block;
+                position: absolute;
+                left: 1rem;
+                bottom: 1rem;
+                z-index: 500;
+                background-color: var(--primary-color);
+                color: white;
+                border: none;
+                width: 50px;
+                height: 50px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+                cursor: pointer;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <span class="logo-icon">✈️</span> Bucket<span>list</span>
+        </div>
+        <nav>
+            <ul>
+                <li><a href="#" class="active">My Map</a></li>
+                <li><a href="#">Stats</a></li>
+                <li><a href="#">Settings</a></li>
+            </ul>
+        </nav>
+    </header>
+    
+    <main>
+        <aside class="sidebar" id="sidebar">
+            <div class="trip-form">
+                <h2 class="form-title">
+                    <span>📍</span> Add New Trip
+                </h2>
+                <form id="add-trip-form">
+                    <div class="form-group">
+                        <label for="location">Location</label>
+                        <input type="text" id="location" class="form-control" placeholder="e.g. Paris, France" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="latitude">Latitude</label>
+                        <input type="number" id="latitude" step="any" class="form-control" placeholder="e.g. 48.8566" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="longitude">Longitude</label>
+                        <input type="number" id="longitude" step="any" class="form-control" placeholder="e.g. 2.3522" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="date-visited">Date Visited</label>
+                        <input type="date" id="date-visited" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="notes">Notes</label>
+                        <textarea id="notes" class="form-control" rows="3" placeholder="Something memorable about this trip..."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Traveled With</label>
+                        <div class="companion-input-container">
+                            <input type="text" id="companion-input" class="form-control" placeholder="Add a travel companion">
+                            <button type="button" id="add-companion-btn" class="companion-add-btn">+</button>
+                        </div>
+                        <div class="companion-chips" id="companions-list"></div>
+                    </div>
+                    
+                    <div class="btn-group">
+                        <button type="submit" class="btn btn-primary">Save Trip</button>
+                        <button type="reset" class="btn btn-danger">Reset</button>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="trips-list">
+                <h2 class="trips-list-title">
+                    <span>🗺️</span> My Trips
+                </h2>
+                <div id="trips-container">
+                    <div class="empty-state" id="empty-state">
+                        <div class="empty-state-icon">🏝️</div>
+                        <p class="empty-state-text">You haven't added any trips yet.</p>
+                        <p>Start by adding your first destination!</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        
+        <div id="map-container">
+            <div id="map"></div>
+            <div class="map-controls">
+                <button class="map-control-btn" id="zoom-in">+</button>
+                <button class="map-control-btn" id="zoom-out">-</button>
+                <button class="map-control-btn" id="center-map">⌂</button>
+            </div>
+            <button class="toggle-sidebar" id="toggle-sidebar">📝</button>
+        </div>
+    </main>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+    <script>
+        // DOM Elements
+        const addTripForm = document.getElementById('add-trip-form');
+        const tripsContainer = document.getElementById('trips-container');
+        const emptyState = document.getElementById('empty-state');
+        const sidebarToggle = document.getElementById('toggle-sidebar');
+        const sidebar = document.getElementById('sidebar');
+        const companionInput = document.getElementById('companion-input');
+        const addCompanionBtn = document.getElementById('add-companion-btn');
+        const companionsList = document.getElementById('companions-list');
+        const zoomInBtn = document.getElementById('zoom-in');
+        const zoomOutBtn = document.getElementById('zoom-out');
+        const centerMapBtn = document.getElementById('center-map');
+        
+        // Map initialization
+        const map = L.map('map').setView([20, 0], 2);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+        
+        // Variables
+        let trips = JSON.parse(localStorage.getItem('trips')) || [];
+        let editingTripId = null;
+        let companions = [];
+        let markers = {};
+        
+        // Functions
+        function saveTrips() {
+            localStorage.setItem('trips', JSON.stringify(trips));
+        }
+        
+        function createTripCard(trip) {
+            const card = document.createElement('div');
+            card.className = 'trip-card';
+            card.dataset.id = trip.id;
+            
+            const dateOptions = { year: 'numeric', month: 'short', day: 'numeric' };
+            const formattedDate = new Date(trip.dateVisited).toLocaleDateString(undefined, dateOptions);
+            
+            card.innerHTML = `
+                <div class="trip-card-header">
+                    ${trip.location}
+                </div>
+                <div class="trip-card-body">
+                    <div class="trip-detail">
+                        <span class="trip-detail-label">Date:</span>
+                        <span>${formattedDate}</span>
+                    </div>
+                    ${trip.notes ? `
+                        <div class="trip-detail">
+                            <span class="trip-detail-label">Notes:</span>
+                            <span>${trip.notes}</span>
+                        </div>
+                    ` : ''}
+                    ${trip.companions && trip.companions.length > 0 ? `
+                        <div class="trip-detail">
+                            <span class="trip-detail-label">With:</span>
+                            <div class="companion-chips">
+                                ${trip.companions.map(companion => 
+                                    `<span class="companion-chip">${companion}</span>`
+                                ).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+                <div class="trip-card-actions">
+                    <button class="trip-action-btn edit" data-id="${trip.id}">Edit</button>
+                    <button class="trip-action-btn delete" data-id="${trip.id}">Delete</button>
+                </div>
+            `;
+            
+            return card;
+        }
+        
+        function displayTrips() {
+            tripsContainer.innerHTML = '';
+            
+            if (trips.length === 0) {
+                tripsContainer.appendChild(emptyState);
+                return;
+            }
+            
+            trips
+                .sort((a, b) => new Date(b.dateVisited) - new Date(a.dateVisited))
+                .forEach(trip => {
+                    const card = createTripCard(trip);
+                    tripsContainer.appendChild(card);
+                });
+        }
+        
+        function createMarker(trip) {
+            const icon = L.divIcon({
+                className: 'custom-marker',
+                html: `<div class="marker-pin"></div><div class="marker-text">${trip.companions.length}</div>`,
+                iconSize: [30, 42],
+                iconAnchor: [15, 42]
+            });
+            
+            const marker = L.marker([trip.latitude, trip.longitude], { icon }).addTo(map);
+            
+            const companionsText = trip.companions.length > 0 
+                ? `<strong>Traveled with:</strong> ${trip.companions.join(', ')}` 
+                : 'Solo trip';
+            
+            const dateOptions = { year: 'numeric', month: 'short', day: 'numeric' };
+            const formattedDate = new Date(trip.dateVisited).toLocaleDateString(undefined, dateOptions);
+            
+            marker.bindPopup(`
+                <div style="min-width: 200px;">
+                    <h3 style="margin-top: 0;">${trip.location}</h3>
+                    <p><strong>Date:</strong> ${formattedDate}</p>
+                    ${trip.notes ? `<p><strong>Notes:</strong> ${trip.notes}</p>` : ''}
+                    <p>${companionsText}</p>
+                </div>
+            `);
+            
+            markers[trip.id] = marker;
+        }
+        
+        function displayMarkers() {
+            // Remove all existing markers
+            Object.values(markers).forEach(marker => map.removeLayer(marker));
+            markers = {};
+            
+            // Add markers for all trips
+            trips.forEach(trip => createMarker(trip));
+        }
+        
+        function generateId() {
+            return Math.random().toString(36).substr(2, 9);
+        }
+        
+        function addTrip(tripData) {
+            const newTrip = {
+                id: editingTripId || generateId(),
+                ...tripData
+            };
+            
+            if (editingTripId) {
+                const index = trips.findIndex(trip => trip.id === editingTripId);
+                if (index !== -1) {
+                    trips[index] = newTrip;
+                }
+                editingTripId = null;
+            } else {
+                trips.push(newTrip);
+            }
+            
+            saveTrips();
+            displayTrips();
+            displayMarkers();
+            resetForm();
+        }
+        
+        function deleteTrip(id) {
+            trips = trips.filter(trip => trip.id !== id);
+            saveTrips();
+            displayTrips();
+            
+            if (markers[id]) {
+                map.removeLayer(markers[id]);
+                delete markers[id];
+            }
+        }
+        
+        function editTrip(id) {
+            const trip = trips.find(trip => trip.id === id);
+            if (!trip) return;
+            
+            editingTripId = id;
+            
+            document.getElementById('location').value = trip.location;
+            document.getElementById('latitude').value = trip.latitude;
+            document.getElementById('longitude').value = trip.longitude;
+            document.getElementById('date-visited').value = trip.dateVisited;
+            document.getElementById('notes').value = trip.notes || '';
+            
+            companions = [...trip.companions];
+            renderCompanions();
+            
+            // Scroll to form
+            sidebar.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+        
+        function resetForm() {
+            addTripForm.reset();
+            editingTripId = null;
+            companions = [];
+            renderCompanions();
+        }
+        
+        function addCompanion() {
+            const name = companionInput.value.trim();
+            if (name && !companions.includes(name)) {
+                companions.push(name);
+                companionInput.value = '';
+                renderCompanions();
+            }
+        }
+        
+        function removeCompanion(name) {
+            companions = companions.filter(companion => companion !== name);
+            renderCompanions();
+        }
+        
+        function renderCompanions() {
+            companionsList.innerHTML = '';
+            
+            companions.forEach(companion => {
+                const chip = document.createElement('div');
+                chip.className = 'companion-chip';
+                chip.innerHTML = `
+                    ${companion}
+                    <button type="button" class="companion-chip-remove" data-name="${companion}">×</button>
+                `;
+                companionsList.appendChild(chip);
+            });
+        }
+        
+        // Event Listeners
+        addTripForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const tripData = {
+                location: document.getElementById('location').value.trim(),
+                latitude: parseFloat(document.getElementById('latitude').value),
+                longitude: parseFloat(document.getElementById('longitude').value),
+                dateVisited: document.getElementById('date-visited').value,
+                notes: document.getElementById('notes').value.trim(),
+                companions: [...companions]
+            };
+            
+            addTrip(tripData);
+        });
+        
+        tripsContainer.addEventListener('click', (e) => {
+            if (e.target.classList.contains('delete')) {
+                const id = e.target.dataset.id;
+                deleteTrip(id);
+            } else if (e.target.classList.contains('edit')) {
+                const id = e.target.dataset.id;
+                editTrip(id);
+            }
+        });
+        
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('show');
+        });
+        
+        addCompanionBtn.addEventListener('click', addCompanion);
+        
+        companionInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addCompanion();
+            }
+        });
+        
+        companionsList.addEventListener('click', (e) => {
+            if (e.target.classList.contains('companion-chip-remove')) {
+                const name = e.target.dataset.name;
+                removeCompanion(name);
+            }
+        });
+        
+        // Map control events
+        zoomInBtn.addEventListener('click', () => map.zoomIn());
+        zoomOutBtn.addEventListener('click', () => map.zoomOut());
+        centerMapBtn.addEventListener('click', () => map.setView([20, 0], 2));
+        
+        // Map click event to get coordinates
+        map.on('click', (e) => {
+            const { lat, lng } = e.latlng;
+            document.getElementById('latitude').value = lat.toFixed(6);
+            document.getElementById('longitude').value = lng.toFixed(6);
+            
+            // Open sidebar on mobile
+            sidebar.classList.add('show');
+        });
+        
+        // Initialize
+        displayTrips();
+        displayMarkers();
+        
+        // Helper to get coordinates for known places (for demo)
+        map.on('contextmenu', function(e) {
+            const { lat, lng } = e.latlng;
+            console.log(`Latitude: ${lat.toFixed(6)}, Longitude: ${lng.toFixed(6)}`);
+        });
+    </script>
+</body>
+</html>
